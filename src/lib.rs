@@ -1,4 +1,8 @@
+use std::cmp::Eq;
+use std::collections::HashSet;
 use std::fmt;
+use std::hash::Hash;
+use std::iter::FromIterator;
 
 pub fn remove_dupes(mut target: Vec<i32>) -> Vec<i32> {
     // start at 1 to current index to previous index
@@ -42,18 +46,59 @@ pub fn rotate_array<T>(items: Vec<T>, rotations: u16) -> Vec<T>
 where
     T: fmt::Display + fmt::Debug + Clone,
 {
-    // get the pivot point by getting the remainder of rotations % number 
+    // get the pivot point by getting the remainder of rotations % number
     // of elements in vector to account for situations where there are
     // more rotations than elements in the vector
     let pivot = rotations % items.len() as u16;
-    // Get the rotation index by pivoting from the right (last element) of array 
+    // Get the rotation index by pivoting from the right (last element) of array
     let rot = items.len() - pivot as usize;
-    
     // split at the rotation point
     let (left, right) = items.split_at(rot);
 
     // swap the right and left to yield the rotated array
     [right, left].concat()
+}
+
+pub fn has_dupes<T>(items: Vec<T>) -> bool
+where
+    T: Eq + PartialEq + Hash,
+{
+    // assign the number of items to the variable before moving items into from_iter()
+    let item_len = items.len();
+    let hashed: HashSet<T> = HashSet::from_iter(items);
+
+    // if the set and the original vector are different lengths, return false
+    hashed.len() == item_len
+}
+
+// Given a non-empty array, find an element that does not repeat itself.
+pub fn get_unique<T>(mut items: Vec<T>) -> Vec<T>
+where
+    T: Eq + PartialEq + Hash + Clone,
+{
+    // preallocate space for one
+    // one set will have length equal to the number of elements in the input items
+    // the other will not be preallocated because we don't know beforehand
+    // how many uniques elements of type T will be in the input item array
+    let mut set_a: HashSet<T> = HashSet::with_capacity(items.len());
+    let mut set_b: HashSet<T> = HashSet::new();
+    // keep popping elements from the items vector
+    // if the current element is in set_a, add it to set_b
+    // otherwise, add the element to set_a. This will let us calculate the
+    // the symmetric difference between the two sets and surface all unique elements
+    while let Some(el) = items.pop() {
+        match set_a.contains(&el) {
+            true => set_b.insert(el),
+            false => set_a.insert(el),
+        };
+    }
+
+    // Gets the symmetric difference between two sets in constant time, collects and
+    // returns the difference (elements without duplicates in items) into a vector
+    set_a
+        .symmetric_difference(&set_b)
+        .cloned()
+        .collect::<Vec<T>>()
 }
 
 #[cfg(test)]
@@ -99,5 +144,40 @@ mod tests {
         assert_eq!(rotate_array(test2.0, test2.1), vec![4, 5, 1, 2, 3]);
         assert_eq!(rotate_array(test3.0, test3.1), vec![2, 3, 4, 5, 1]);
         assert_eq!(rotate_array(test4.0, test4.1), vec![1]);
+    }
+
+    #[test]
+    fn test_dupe_bool() {
+        let test1 = vec![1, 1, 2, 3, 4, 5];
+        let test2 = vec![0, 1, 2, 3, 4, 5];
+        let test3 = vec![1, 2];
+        let test4 = vec!["loop", "zoop", "goop", "loop"];
+        let test5 = vec!["lol", "jimmy", "johnny"];
+
+        assert!(!has_dupes(test1));
+        assert!(has_dupes(test2));
+        assert!(has_dupes(test3));
+        assert!(!has_dupes(test4));
+        assert!(has_dupes(test5));
+    }
+
+    #[test]
+    fn test_unique() {
+        let test1 = vec![1, 1, 1, 4, 4, 5];
+        let test2 = vec![1, 1, 1, 1, 4];
+        let test3 = vec![1, 1, 2, 2, 5, 6];
+        let test4 = vec![1];
+        let test5 = vec!["foo", "bar", "baz", "foo", "ding"];
+
+        assert_eq!(vec![5], get_unique(test1));
+        assert_eq!(vec![4], get_unique(test2));
+        assert!(get_unique(test3.clone()).contains(&5) && get_unique(test3.clone()).contains(&6));
+        assert!(!get_unique(test3.clone()).contains(&1) && !get_unique(test3.clone()).contains(&2));
+        assert_eq!(vec![1], get_unique(test4));
+        assert!(!get_unique(test5.clone()).contains(&"foo"));
+        assert!(
+            get_unique(test5.clone()).contains(&"bar")
+                && get_unique(test5.clone()).contains(&"baz")
+        );
     }
 }
