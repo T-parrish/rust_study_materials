@@ -101,6 +101,43 @@ where
         .collect::<Vec<T>>()
 }
 
+// Computes the intersection of two vectors
+pub fn get_intersection<T>(vec_a: Vec<T>, vec_b: Vec<T>) -> Vec<T>
+where
+    T: Eq + PartialEq + Hash + Clone,
+{
+    // consume vec_a and vec_b and store their respective hash set representations
+    let set_a: HashSet<T> = HashSet::from_iter(vec_a);
+    let set_b: HashSet<T> = HashSet::from_iter(vec_b);
+
+    // Calculate the interesection and collect into a vector with elements of Type T
+    set_a.intersection(&set_b).cloned().collect::<Vec<T>>()
+}
+
+// takes an input array of unsigned integers
+// returns the array of unsigned integers + 1 
+// eg. [1, 3, 4, 5] -> [1, 3, 4, 6] or [1, 2, 6, 9] -> [1, 2, 7, 0]
+pub fn add_one(mut input: Vec<u32>) -> Vec<u32> {
+    let mut temp = String::new();
+    while let Some(int) = input.pop() {
+        temp.push_str(&int.to_string());
+    }
+
+    // Reverse the temp chars and collect into a string that we parse into a u32 int and add 1
+    let plus_one = temp.chars().rev().collect::<String>().parse::<u32>().unwrap() + 1;
+
+    // cast the u32 int as a string after the 1 has been added, map over the characters 
+    // to return a new vector where each element is typed as a u32 int
+    plus_one.to_string().chars().map(|c| c.to_digit(10).unwrap() as u32).collect()
+}
+
+// Sorts the array in place using a cached key for performance
+// returns the same array with all zeroes moved to the end of the vector
+pub fn zeroes_in_back(mut input: Vec<i32>) -> Vec<i32> {
+    input.sort_by_cached_key(|k| k == &0);
+    input
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,5 +216,51 @@ mod tests {
             get_unique(test5.clone()).contains(&"bar")
                 && get_unique(test5.clone()).contains(&"baz")
         );
+    }
+
+    #[test]
+    fn test_intersection() {
+        let test1 = (vec![1, 2, 3], vec![1, 3, 4]);
+        let test2 = (vec![1, 1, 2], vec![1, 2, 3]);
+        let test3 = (vec![1, 1, 1], vec![2]);
+
+        assert!(get_intersection(test1.0, test1.1).contains(&1));
+
+        let (a, b) = test2.clone();
+        assert!(get_intersection(a, b).contains(&1));
+
+        let (a, b) = test2.clone();
+        assert!(get_intersection(a, b).contains(&2));
+
+        assert!(!get_intersection(test3.0, test3.1).contains(&1));
+    }
+
+    #[test]
+    fn test_add_one() {
+        let test1 = vec![1, 2, 3, 4];
+        let test2 = vec![1, 2, 2, 9];
+        let test3 = vec![1, 9, 9, 9];
+        let test4 = vec![9];
+
+        assert_eq!(vec![1, 2, 3, 5], add_one(test1));
+        assert_eq!(vec![1, 2, 3, 0], add_one(test2));
+        assert_eq!(vec![2, 0, 0, 0], add_one(test3));
+        assert_eq!(vec![1, 0], add_one(test4));
+    }
+
+    #[test]
+    fn test_ending_zeroes() {
+        let test1 = vec![1, 0, 0, 4];
+        let test2 = vec![1, 0, 0, 1, 0];
+        let test3 = vec![1, 0, 0, 4, 0];
+        let test4 = vec![0, 0, 0, 4, 0];
+        let test5 = vec![0];
+
+        assert_eq!(vec![1, 4, 0, 0], zeroes_in_back(test1));
+        assert_eq!(vec![1, 1, 0, 0, 0], zeroes_in_back(test2));
+        assert_eq!(vec![1, 4, 0, 0, 0], zeroes_in_back(test3));
+        assert_eq!(vec![4, 0, 0, 0, 0], zeroes_in_back(test4));
+        assert_eq!(vec![0], zeroes_in_back(test5));
+
     }
 }
