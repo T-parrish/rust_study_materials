@@ -1,5 +1,5 @@
 use std::cmp::Eq;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::fmt;
 use std::hash::Hash;
 use std::iter::FromIterator;
@@ -115,7 +115,7 @@ where
 }
 
 // takes an input array of unsigned integers
-// returns the array of unsigned integers + 1 
+// returns the array of unsigned integers + 1
 // eg. [1, 3, 4, 5] -> [1, 3, 4, 6] or [1, 2, 6, 9] -> [1, 2, 7, 0]
 pub fn add_one(mut input: Vec<u32>) -> Vec<u32> {
     let mut temp = String::new();
@@ -124,11 +124,21 @@ pub fn add_one(mut input: Vec<u32>) -> Vec<u32> {
     }
 
     // Reverse the temp chars and collect into a string that we parse into a u32 int and add 1
-    let plus_one = temp.chars().rev().collect::<String>().parse::<u32>().unwrap() + 1;
+    let plus_one = temp
+        .chars()
+        .rev()
+        .collect::<String>()
+        .parse::<u32>()
+        .unwrap()
+        + 1;
 
-    // cast the u32 int as a string after the 1 has been added, map over the characters 
+    // cast the u32 int as a string after the 1 has been added, map over the characters
     // to return a new vector where each element is typed as a u32 int
-    plus_one.to_string().chars().map(|c| c.to_digit(10).unwrap() as u32).collect()
+    plus_one
+        .to_string()
+        .chars()
+        .map(|c| c.to_digit(10).unwrap() as u32)
+        .collect()
 }
 
 // Sorts the array in place using a cached key for performance
@@ -136,6 +146,149 @@ pub fn add_one(mut input: Vec<u32>) -> Vec<u32> {
 pub fn zeroes_in_back(mut input: Vec<i32>) -> Vec<i32> {
     input.sort_by_cached_key(|k| k == &0);
     input
+}
+
+// Return indices of the two numbers in a list such that they add up to a specific target.
+// You may not use the same integer more than once
+// Runs in Quadratic time O(n^2) 
+pub fn add_to_target_brute(input: Vec<i32>, target: i32) -> Vec<(usize, usize)> {
+    // store the indices that add up to the target in a hash set for O(1) lookup
+    let mut found: HashSet<usize> = HashSet::new();
+    // store the index pairs that add to the target in a vector of tuples
+    let mut output: Vec<(usize, usize)> = Vec::new();
+
+    for i in 0..(input.len()-1) {
+        if found.contains(&i) {
+            continue;
+        }
+        for j in (i + 1)..input.len() {
+            if found.contains(&j) || found.contains(&i) {
+                continue;
+            }
+            match (input[i] + input[j]) == target {
+                true => {
+                    found.insert(i);
+                    found.insert(j);
+                    output.push((i, j));
+                }
+                false => continue,
+            }
+        }
+    }
+
+    output
+}
+
+// finds a single pair of indices that add up to the target
+// This solution runs in O(2N) time with O(2N) space
+pub fn add_to_target_mapped(input: Vec<i32>, target: i32) -> Vec<(usize, usize)> {
+    let mut hashed: HashMap<i32, usize> = HashMap::new();
+    let mut found: HashSet<usize> = HashSet::new();
+    let mut output: Vec<(usize, usize)> = Vec::new();
+    // Stores the input vector elements in a hashmap where
+    // the key is the element and the value is the index
+    for (i, t) in input.iter().enumerate() {
+        hashed.insert(*t, i);
+    }
+
+    for i in 0..input.len() {
+        let temp = &target - input[i];
+        let index = match hashed.get(&temp) {
+            Some(t) => t,
+            None => continue
+        };
+
+        // must add two separate indices, and only add indices
+        // that haven't been added previously
+        if i != *index && !found.contains(index) && !found.contains(&i) {
+            output.push((i, *index));
+            found.insert(*index);
+        }
+    }
+
+    output
+
+}
+
+// Determine if a 9x9 Sudoku board is valid. Only the filled cells need to be validated.
+// A Sudoku board (partially filled) could be valid but is not necessarily solvable. 
+pub fn is_valid_sudoku(input: Vec<Vec<&str>>) -> bool {
+
+    fn unroll_data(data: &[&str]) -> bool {
+        let mut hashed: HashSet<u8> = HashSet::new();
+        for x in data {
+            // parse the vector into u8 (0 - 9) integers
+            let num_rep = match x.parse::<u8>() {
+                Ok(num) => num,
+                Err(_) => continue
+            };
+
+            // if the hash set contains the number, the sudoku is invalid
+            if hashed.contains(&num_rep) {
+                return false 
+            } else {
+                hashed.insert(num_rep);
+            }
+        }
+
+        true
+    }
+
+    fn test_square(input: &[Vec<&str>], start: usize, window: usize) -> bool {
+        let mut flat: Vec<&str> = Vec::new();
+
+        for i in start..window {
+            for j in start..window {
+                flat.push(input[i][j]);
+            }
+        }
+        
+        unroll_data(&flat[..]) // return true if the square is valid
+    }
+
+    fn test_column(input: &[Vec<&str>], col: usize) -> bool {
+        let mut flat: Vec<&str> = Vec::new();
+        
+        // for each row in the input matrix
+        for i in 0..input.len() {
+            flat.push(input[i][col]);
+        }
+
+        unroll_data(&flat[..])
+    }
+
+    // test the rows
+    for row in 0..input.len() {
+        match unroll_data(&input[row]) {
+            true => continue,
+            false => return false
+        }
+    }
+
+    // test the columns
+    for col in 0..input.len() {
+        match test_column(&input, col) {
+            true => continue,
+            false => return false
+        }
+    }
+
+    // test the sub-squares
+    let chunk_size = input.len() / 3;
+    let mut window = chunk_size;
+    let mut start = 0;
+
+    while window < input.len() {
+        if test_square(&input, start, window) == false {
+            return false
+        } 
+
+        window += chunk_size;
+        start += chunk_size;
+    }
+
+    // return true if all tests pass
+    true
 }
 
 #[cfg(test)]
@@ -261,6 +414,65 @@ mod tests {
         assert_eq!(vec![1, 4, 0, 0, 0], zeroes_in_back(test3));
         assert_eq!(vec![4, 0, 0, 0, 0], zeroes_in_back(test4));
         assert_eq!(vec![0], zeroes_in_back(test5));
+    }
 
+    #[test]
+    fn test_add_to_target() {
+        let test1 = (vec![1, 0, 0, 4], 5);
+        let test2 = (vec![1, 4, 1, 4], 5);
+        let test3 = (vec![1, 2, 3, 4], 5);
+        let test4 = (vec![0, 0, 0, 7], 7);
+        let test5 = (vec![1, 3, 2, 2], 4);
+
+        assert_eq!(add_to_target_brute(test1.0, test1.1), vec![(0, 3)]);
+        assert_eq!(add_to_target_brute(test2.0, test2.1), vec![(0, 1), (2, 3)]);
+        assert_eq!(add_to_target_brute(test3.0, test3.1), vec![(0, 3), (1, 2)]);
+        assert_eq!(add_to_target_brute(test4.0, test4.1), vec![(0, 3)]);
+        assert_eq!(add_to_target_brute(test5.0, test5.1), vec![(0, 1), (2, 3)]);
+    }
+
+    #[test]
+    fn test_mapped_add_to_target() {
+        let test1 = (vec![1, 0, 0, 4], 5);
+        let test2 = (vec![1, 4, 2, 3], 5);
+        let test3 = (vec![1, 2, 3, 4], 5);
+        let test4 = (vec![0, 0, 0, 7], 7);
+        let test5 = (vec![1, 3, 2, 2], 4);
+
+        assert_eq!(add_to_target_mapped(test1.0, test1.1), vec![(0, 3)]);
+        assert_eq!(add_to_target_mapped(test2.0, test2.1), vec![(0, 1), (2, 3)]);
+        assert_eq!(add_to_target_mapped(test3.0, test3.1), vec![(0, 3), (1, 2)]);
+        assert_eq!(add_to_target_mapped(test4.0, test4.1), vec![(0, 3)]);
+        assert_eq!(add_to_target_mapped(test5.0, test5.1), vec![(0, 1), (2, 3)]);
+    }
+
+    #[test]
+    fn test_sudoku_validator() {
+        let test1 = vec![
+            vec!["8","3",".",".","7",".",".",".","."],
+            vec!["6",".",".","1","9","5",".",".","."],
+            vec![".","9","8",".",".",".",".","6","."],
+            vec!["8",".",".",".","6",".",".",".","3"],
+            vec!["4",".",".","8",".","3",".",".","1"],
+            vec!["7",".",".",".","2",".",".",".","6"],
+            vec![".","6",".",".",".",".","2","8","."],
+            vec![".",".",".","4","1","9",".",".","5"],
+            vec![".",".",".",".","8",".",".","7","9"]
+        ];
+
+        let test2 = vec![
+            vec!["5","3",".",".","7",".",".",".","."],
+            vec!["6",".",".","1","9","5",".",".","."],
+            vec![".","9","8",".",".",".",".","6","."],
+            vec!["8",".",".",".","6",".",".",".","3"],
+            vec!["4",".",".","8",".","3",".",".","1"],
+            vec!["7",".",".",".","2",".",".",".","6"],
+            vec![".","6",".",".",".",".","2","8","."],
+            vec![".",".",".","4","1","9",".",".","5"],
+            vec![".",".",".",".","8",".",".","7","9"]
+        ];
+
+        assert!(!is_valid_sudoku(test1));
+        assert!(is_valid_sudoku(test2));
     }
 }
