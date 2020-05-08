@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+
 
 // Given a string containing just the characters '(', ')', '{', '}', '[' and ']'
 // determine if the input string is valid. Open brackets must be closed by
@@ -162,6 +163,58 @@ pub fn is_palindrome(input: String) -> bool {
     clean_string == *rev_string
 }
 
+// finds the longest substrings without repeating characters 
+pub fn longest_substring(input: String) -> Option<String> {
+    let mut sub_dict: HashMap<usize, String> = HashMap::new();
+    let mut seen: HashSet<char> = HashSet::new();
+    // longest possible substring will have length == input
+    let mut sub_container: Vec<char> = Vec::with_capacity(input.len()); 
+    let mut longest = 0;
+
+    for c in input.chars() {
+        if seen.contains(&c) {
+            // keep track of the substring lengths to do a dictionary lookup
+            if sub_container.len() >= longest {
+                longest = sub_container.len();
+            }
+
+            // if the character has already been seen
+            // insert K = length of substring and V = substring into dictionary
+            sub_dict.insert(sub_container.len(), sub_container.iter().collect::<String>());
+            
+            // retain the part of the substring that occurs after the first 
+            // instance of the char that was duplicated
+            let splice_pos = sub_container.iter().position(|&el| el == c).unwrap();
+            let (_left, right) = sub_container.split_at(splice_pos+1);
+
+            sub_container = right.to_vec();
+            sub_container.push(c);
+
+            // update the seen HashSet to be a collection of characters
+            // currently existing in the sub_container
+            seen = sub_container.iter().cloned().collect();
+        } else {
+            // otherwise, push the character into the sub_container and
+            // add the character to the seen HashSet
+            println!("sub_container: {:?}", sub_container);
+            sub_container.push(c);
+            seen.insert(c);
+        }
+    }
+
+    // move whatever is left in the sub_container to the dictionary and update longest
+    if sub_container.len() >= longest {
+        longest = sub_container.len();
+    }
+
+    sub_dict.insert(sub_container.len(), sub_container.into_iter().collect::<String>());
+
+    match sub_dict.get(&longest) {
+        Some(val) => Some(val.to_string()),
+        None => None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -254,6 +307,20 @@ mod tests {
         assert!(is_palindrome(test3));
         assert!(!is_palindrome(test4));
         assert!(is_palindrome(test5));
+    }
 
+    #[test]
+    fn test_longest_substring() {
+        let test1 = String::from("avalanche");
+        let test2 = String::from("");
+        let test3 = String::from("foobar");
+        let test4 = String::from("lollipops");
+        let test5 = String::from("applesauce");
+
+        assert_eq!(longest_substring(test1), Some(String::from("lanche")));
+        assert_eq!(longest_substring(test2), Some(String::from("")));
+        assert_eq!(longest_substring(test3), Some(String::from("obar")));
+        assert_eq!(longest_substring(test4), Some(String::from("lipo")));
+        assert_eq!(longest_substring(test5), Some(String::from("plesauc")));
     }
 }
