@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 // Binary search function for sorted vector of integers.
 // If the vector is not sorted, this will not work.
+// Rust also has built-in binary_search(&self, x: &T) -> Result<usize, usize> vector method
 pub fn binary_search(arr: Vec<i32>, mut left: u32, mut right: u32, target: i32) -> Option<usize> {
     while left <= right {
         let mid_idx = left + (right - left) / 2;
