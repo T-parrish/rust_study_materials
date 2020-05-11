@@ -1,5 +1,5 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-
 
 // Given a string containing just the characters '(', ')', '{', '}', '[' and ']'
 // determine if the input string is valid. Open brackets must be closed by
@@ -148,7 +148,9 @@ pub fn is_anagram(a: String, b: String) -> bool {
 
 // function that checks if the input string is a valid palindrome
 pub fn is_palindrome(input: String) -> bool {
-    if input == String::from("") { return true };
+    if input == String::from("") {
+        return true;
+    };
     // first, clean the string so we only have lowercase alphanumeric characters
     let clean_string = input
         .to_lowercase()
@@ -163,12 +165,12 @@ pub fn is_palindrome(input: String) -> bool {
     clean_string == *rev_string
 }
 
-// finds the longest substrings without repeating characters 
+// finds the longest substrings without repeating characters
 pub fn longest_substring(input: String) -> Option<String> {
     let mut sub_dict: HashMap<usize, String> = HashMap::new();
     let mut seen: HashSet<char> = HashSet::new();
     // longest possible substring will have length == input
-    let mut sub_container: Vec<char> = Vec::with_capacity(input.len()); 
+    let mut sub_container: Vec<char> = Vec::with_capacity(input.len());
     let mut longest = 0;
 
     for c in input.chars() {
@@ -180,12 +182,15 @@ pub fn longest_substring(input: String) -> Option<String> {
 
             // if the character has already been seen
             // insert K = length of substring and V = substring into dictionary
-            sub_dict.insert(sub_container.len(), sub_container.iter().collect::<String>());
-            
-            // retain the part of the substring that occurs after the first 
+            sub_dict.insert(
+                sub_container.len(),
+                sub_container.iter().collect::<String>(),
+            );
+
+            // retain the part of the substring that occurs after the first
             // instance of the char that was duplicated
             let splice_pos = sub_container.iter().position(|&el| el == c).unwrap();
-            let (_left, right) = sub_container.split_at(splice_pos+1);
+            let (_left, right) = sub_container.split_at(splice_pos + 1);
 
             sub_container = right.to_vec();
             sub_container.push(c);
@@ -207,12 +212,48 @@ pub fn longest_substring(input: String) -> Option<String> {
         longest = sub_container.len();
     }
 
-    sub_dict.insert(sub_container.len(), sub_container.into_iter().collect::<String>());
+    sub_dict.insert(
+        sub_container.len(),
+        sub_container.into_iter().collect::<String>(),
+    );
 
     match sub_dict.get(&longest) {
         Some(val) => Some(val.to_string()),
-        None => None
+        None => None,
     }
+}
+
+pub fn string_to_int(s: String) -> i32 {
+    let mut negative = false;
+    let bound: i32 = 2147483647;
+
+    // check to see if the String slice starts with negative sign
+    if s.trim().starts_with("-") {
+        negative = true;
+    }
+
+    // filter string so there are only base-10 digits
+    let clean = s.chars().filter(|c| c.is_digit(10)).collect::<String>();
+
+    // clamp to i32 max / min
+    let parsed = match clean.parse::<i32>() {
+        Ok(val) => {
+            if negative {
+                val * -1
+            } else {
+                val
+            }
+        }
+        _ => {
+            if negative {
+                -2147483648
+            } else {
+                bound
+            }
+        }
+    };
+
+    parsed
 }
 
 #[cfg(test)]
@@ -322,5 +363,20 @@ mod tests {
         assert_eq!(longest_substring(test3), Some(String::from("obar")));
         assert_eq!(longest_substring(test4), Some(String::from("lipo")));
         assert_eq!(longest_substring(test5), Some(String::from("plesauc")));
+    }
+
+    #[test]
+    fn test_string_to_int() {
+        let test1 = String::from("123");
+        let test2 = String::from("-123");
+        let test3 = String::from("-214748364899");
+        let test4 = String::from("2147483648999");
+        let test5 = String::from("1234 halp im stuck in a loop");
+
+        assert_eq!(string_to_int(test1), 123);
+        assert_eq!(string_to_int(test2), -123);
+        assert_eq!(string_to_int(test3), -2147483648);
+        assert_eq!(string_to_int(test4), 2147483647);
+        assert_eq!(string_to_int(test5), 1234);
     }
 }
