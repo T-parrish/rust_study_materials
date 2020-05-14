@@ -2,10 +2,10 @@ extern crate rand;
 // use rand::Rng;
 use rand::distributions::{Distribution, Uniform};
 
-pub fn gen_random_vector(start: usize, stop: usize, count: usize) -> Vec<usize> {
+pub fn gen_random_vector(start: i32, stop: i32, count: u32) -> Vec<i32> {
     let step = Uniform::new(start, stop);
     let mut rng = rand::thread_rng();
-    let choices: Vec<_> = step.sample_iter(&mut rng).take(count).collect();
+    let choices: Vec<_> = step.sample_iter(&mut rng).take(count as usize).collect();
 
     choices
 }
