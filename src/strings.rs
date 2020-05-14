@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
 // Given a string containing just the characters '(', ')', '{', '}', '[' and ']'
