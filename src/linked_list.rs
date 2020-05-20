@@ -1,18 +1,21 @@
+use std::cmp::PartialEq;
+use std::fmt::Debug;
+
 // Need a Node type to hold data and reference to next Node in LL
-struct Node<T> {
+struct Node<T: PartialEq + Debug> {
     data: T,
     next: Link<T>,
 }
 
 // Need a Link type to hold a reference to a boxed Node or None
-type Link<T> = Option<Box<Node<T>>>;
+type Link<T: PartialEq + Debug> = Option<Box<Node<T>>>;
 
 // Need a LL type to join everything together by maintaining a pointer to a specific Link
-struct LinkedList<T> {
+struct LinkedList<T: PartialEq + Debug> {
     head: Link<T>,
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialEq + Debug> LinkedList<T> {
     fn new() -> Self {
         LinkedList { head: None }
     }
@@ -44,9 +47,37 @@ impl<T> LinkedList<T> {
     fn peek_mut(&mut self) -> Option<&mut T> {
         self.head.as_mut().map(|node| &mut node.data)
     }
+
+    // Method to find an element in the LinkedList and return its index
+    fn find(&mut self, target: T) -> Option<usize> {
+        let mut target_idx = Some(0);
+        // borrow a reference to the head node 
+        let mut curr_node = self.head.as_ref();
+
+        // traverse all nodes in the linked list:
+        // while there is Some data inside the current node
+        while let Some(boxed_data) = curr_node {
+            // check to see if the target value is contained in the node
+            let node_data = curr_node.map(|node| &node.data);
+
+            // if it does, return the index of said node
+            if *node_data.unwrap() == target {
+                return target_idx
+            } else {
+                // otherwise, increment the target_idx counter
+                target_idx.as_mut().map(|idx| *idx+=1);
+            }
+
+            // Move to next node in linked list
+            curr_node = boxed_data.next.as_ref()
+        }
+
+        // if the target is not found, will evaluate to None
+        None
+    }
 }
 // Need to implement the Drop trait because dropping boxes is not tail recursive
-impl<T> Drop for LinkedList<T> {
+impl<T: PartialEq + Debug> Drop for LinkedList<T> {
     fn drop(&mut self) {
         let mut curr_node = self.head.take();
         while let Some(mut boxed_data) = curr_node {
@@ -57,27 +88,27 @@ impl<T> Drop for LinkedList<T> {
 
 // Need to implement a way to iterate over the LinkedList
 // Uses a Tuple Struct to wrap the LinkedList Type
-pub struct IntoIter<T>(LinkedList<T>);
+pub struct IntoIter<T: PartialEq + Debug>(LinkedList<T>);
 
-impl<T> Iterator for IntoIter<T> {
+impl<T: PartialEq + Debug> Iterator for IntoIter<T> {
     type Item = T;
     fn next(&mut self) -> Option<Self::Item> {
         self.0.pop()
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialEq + Debug> LinkedList<T> {
     // Method to move self into an iterator
     fn into_iter(self) -> IntoIter<T> {
         IntoIter(self)
     }
 }
 
-pub struct Iter<'a, T> {
+pub struct Iter<'a, T: PartialEq + Debug> {
     next: Option<&'a Node<T>>,
 }
 
-impl<'a, T> Iterator for Iter<'a, T> {
+impl<'a, T: PartialEq + Debug> Iterator for Iter<'a, T> {
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item> {
         self.next.map(|node| {
@@ -87,7 +118,7 @@ impl<'a, T> Iterator for Iter<'a, T> {
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialEq + Debug> LinkedList<T> {
     fn iter(&mut self) -> Iter<T> {
         Iter {
             // Deref the Box before taking the reference to underlying node
@@ -98,11 +129,11 @@ impl<T> LinkedList<T> {
     }
 }
 
-pub struct IterMut<'a, T> {
+pub struct IterMut<'a, T: PartialEq + Debug> {
     next: Option<&'a mut Node<T>>,
 }
 
-impl<'a, T> Iterator for IterMut<'a, T> {
+impl<'a, T: PartialEq + Debug> Iterator for IterMut<'a, T> {
     type Item = &'a mut T;
     fn next(&mut self) -> Option<Self::Item> {
         self.next.take().map(|node| {
@@ -112,7 +143,7 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
-impl<T> LinkedList<T> {
+impl<T: PartialEq + Debug> LinkedList<T> {
     fn iter_mut(&mut self) -> IterMut<T> {
         IterMut {
             next: self.head.as_mut().map(|node| &mut **node),
@@ -206,5 +237,19 @@ mod tests {
         assert_eq!(iter.next(), Some(&mut 3));
         assert_eq!(iter.next(), Some(&mut 2));
         assert_eq!(iter.next(), None);
+    }
+
+    #[test]
+    fn test_node_finder() {
+        let mut list = LinkedList::new();
+        list.push(2);
+        list.push(3);
+        list.push(1);
+
+        assert_eq!(list.find(1), Some(0));
+        assert_eq!(list.find(3), Some(1));
+        assert_eq!(list.find(2), Some(2));
+        assert_eq!(list.find(5), None);
+
     }
 }
